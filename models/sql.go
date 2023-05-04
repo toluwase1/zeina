@@ -1,12 +1,13 @@
-package zeina
+package models
 
 import (
 	"database/sql"
-	"fmt"
+	"github.com/gobuffalo/pop/genny/config"
+	"log"
 )
 
-func main() {
-	// Connection string for the PostgreSQL database
+func getPostgresDB(c *config.Config) *sql.DB {
+	log.Printf("Connecting to postgres: %+v", c)
 	connStr := "postgres://postgres:toluwase@localhost/zeina?sslmode=disable"
 
 	// Open a database connection
@@ -21,6 +22,5 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-
-	fmt.Println("Connected to database successfully!")
+	return db
 }
