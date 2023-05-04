@@ -6,6 +6,8 @@ import (
 	"time"
 	"zeina/config"
 	"zeina/db"
+	"zeina/server"
+	"zeina/services"
 )
 
 func main() {
@@ -16,5 +18,12 @@ func main() {
 	}
 	sqlDB := db.GetDB(conf)
 	authRepo := db.NewAuthRepo(sqlDB)
+	authService := services.NewAuthService(authRepo, conf)
 
+	s := &server.Server{
+		Config:         conf,
+		AuthRepository: authRepo,
+		AuthService:    authService,
+	}
+	s.Start()
 }
