@@ -2,6 +2,7 @@ package config
 
 import (
 	"github.com/joho/godotenv"
+	"github.com/kelseyhightower/envconfig"
 	"log"
 	"os"
 )

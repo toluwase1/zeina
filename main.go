@@ -1,26 +1,19 @@
 package zeina
 
 import (
-	"database/sql"
-	"fmt"
+	"log"
+	"net/http"
+	"time"
+	"zeina/config"
+	"zeina/models"
 )
 
 func main() {
-	// Connection string for the PostgreSQL database
-	connStr := "postgres://postgres:toluwase@localhost/zeina?sslmode=disable"
-
-	// Open a database connection
-	db, err := sql.Open("postgres", connStr)
+	http.DefaultClient.Timeout = time.Second * 10
+	conf, err := config.Load()
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
-	defer db.Close()
+	gormDB := models.GetDB(conf)
 
-	// Ping the database to check if the connection is working
-	err = db.Ping()
-	if err != nil {
-		panic(err)
-	}
-
-	fmt.Println("Connected to database successfully!")
 }
