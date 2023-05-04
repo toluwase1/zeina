@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"time"
 	"zeina/config"
-	"zeina/models"
+	"zeina/db"
 )
 
 func main() {
@@ -14,6 +14,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	gormDB := models.GetDB(conf)
+	sqlDB := db.GetDB(conf)
+	authRepo := db.NewAuthRepo(sqlDB)
 
 }
