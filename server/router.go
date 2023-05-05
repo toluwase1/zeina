@@ -10,6 +10,8 @@ import (
 )
 
 func (s *Server) defineRoutes(router *gin.Engine) {
+	router.GET("/ping", s.Ping())
+
 	apirouter := router.Group("/api/v1")
 	apirouter.POST("/auth/signup", s.HandleSignup())
 	apirouter.POST("/auth/login", s.handleLogin())
