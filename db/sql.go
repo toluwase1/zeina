@@ -23,7 +23,7 @@ func (sql *SqlDB) Init(c *config.Config) {
 
 func getPostgresDB(c *config.Config) *sql.DB {
 	log.Printf("Connecting to postgres: %+v", c)
-	postgresDSN := "postgres://postgres:toluwase@localhost/zeina?sslmode=disable"
+	postgresDSN := "postgres://toluwase:toluwase@localhost/zeina?sslmode=disable"
 	//postgresDSN := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%d TimeZone=Africa/Lagos",
 	//	c.PostgresHost, c.PostgresUser, c.PostgresPassword, c.PostgresDB, c.PostgresPort)
 	log.Println(postgresDSN)
