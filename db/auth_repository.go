@@ -7,14 +7,12 @@ import (
 	"zeina/models"
 )
 
-// DB provides access to the different db
-//go:generate mockgen -destination=../mocks/auth_repo_mock.go -package=mocks github.com/decagonhq/zeina/db AuthRepository
-convert all my functions below functions to raw sql queries from gorm queries, ensure that everything is correct:
+//go:generate mockgen -destination=../mocks/auth_repo_mock.go -package=mocks zeina/db AuthRepository
 type AuthRepository interface {
 	CreateUser(user *models.User) (*models.User, error)
 	IsEmailExist(email string) error
 	IsPhoneExist(email string) error
-	FindUserByUsername(username string) (*models.User, error)
+	FindUserByUsername(name string) (*models.User, error)
 	FindUserByEmail(email string) (*models.User, error)
 	UpdateUser(user *models.User) error
 	AddToBlackList(blacklist *models.BlackList) error
@@ -31,15 +29,15 @@ func NewAuthRepo(db *SqlDB) AuthRepository {
 	return &authRepo{db.DB}
 }
 func (a *authRepo) CreateUser(user *models.User) (*models.User, error) {
-	query := "INSERT INTO users (name, email, phone_number, hashed_password, is_email_active) VALUES ($1, $2, $3, $4, $5) RETURNING id, username, email, phone_number, hashed_password, is_email_active, created_at, updated_at"
+	query := "INSERT INTO users (id, name, email, phone_number, hashed_password, is_active, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id, name, email, phone_number, hashed_password, is_active, created_at, updated_at"
 	stmt, err := a.DB.Prepare(query)
 	if err != nil {
-		return nil, fmt.Errorf("could not prepare statement: %v", err)
+		return nil, fmt.Errorf("internal server error %v", err)
 	}
 	defer stmt.Close()
 
 	var createdUser models.User
-	err = stmt.QueryRow(user.Name, user.Email, user.PhoneNumber, user.HashedPassword, user.IsEmailActive).Scan(&createdUser.ID, &createdUser.Name, &createdUser.Email, &createdUser.PhoneNumber, &createdUser.HashedPassword, &createdUser.IsEmailActive, &createdUser.CreatedAt, &createdUser.UpdatedAt)
+	err = stmt.QueryRow(user.ID, user.Name, user.Email, user.PhoneNumber, user.HashedPassword, user.IsActive, user.CreatedAt, user.UpdatedAt).Scan(&createdUser.ID, &createdUser.Name, &createdUser.Email, &createdUser.PhoneNumber, &createdUser.HashedPassword, &createdUser.IsActive, &createdUser.CreatedAt, &createdUser.UpdatedAt)
 	if err != nil {
 		return nil, fmt.Errorf("could not create user: %v", err)
 	}
@@ -50,12 +48,12 @@ func (a *authRepo) FindUserByUsername(name string) (*models.User, error) {
 	query := "SELECT * FROM users WHERE email = $1 OR name = $1"
 	stmt, err := a.DB.Prepare(query)
 	if err != nil {
-		return nil, fmt.Errorf("could not prepare statement: %v", err)
+		return nil, fmt.Errorf("internal server error %v", err)
 	}
 	defer stmt.Close()
 
 	var user models.User
-	err = stmt.QueryRow(name).Scan(&user.ID, &user.Name, &user.Email, &user.PhoneNumber, &user.HashedPassword, &user.IsEmailActive, &user.CreatedAt, &user.UpdatedAt)
+	err = stmt.QueryRow(name).Scan(&user.ID, &user.Name, &user.Email, &user.PhoneNumber, &user.HashedPassword, &user.IsActive, &user.CreatedAt, &user.UpdatedAt)
 	if err != nil {
 		return nil, fmt.Errorf("could not find user: %v", err)
 	}
@@ -67,7 +65,7 @@ func (a *authRepo) IsEmailExist(email string) error {
 	var count int64
 	err := a.DB.QueryRow(query, email).Scan(&count)
 	if err != nil {
-		return fmt.Errorf("error in counting: %v", err)
+		return fmt.Errorf("internal server error %v", err)
 	}
 	if count > 0 {
 		return fmt.Errorf("email already in use")
@@ -80,7 +78,7 @@ func (a *authRepo) IsPhoneExist(phone string) error {
 	var count int64
 	err := a.DB.QueryRow(query, phone).Scan(&count)
 	if err != nil {
-		return fmt.Errorf("error in counting: %v", err)
+		return fmt.Errorf("internal server error %v", err)
 	}
 	if count > 0 {
 		return fmt.Errorf("phone number already in use")
@@ -92,12 +90,12 @@ func (a *authRepo) FindUserByEmail(email string) (*models.User, error) {
 	query := "SELECT * FROM users WHERE email = $1"
 	stmt, err := a.DB.Prepare(query)
 	if err != nil {
-		return nil, fmt.Errorf("could not prepare statement: %v", err)
+		return nil, fmt.Errorf("internal server error %v", err)
 	}
 	defer stmt.Close()
 
 	var user models.User
-	err = stmt.QueryRow(email).Scan(&user.ID, &user.Name, &user.Email, &user.PhoneNumber, &user.HashedPassword, &user.IsEmailActive, &user.CreatedAt, &user.UpdatedAt)
+	err = stmt.QueryRow(email).Scan(&user.ID, &user.Email, &user.Name, &user.PhoneNumber, &user.HashedPassword, &user.IsActive, &user.CreatedAt, &user.UpdatedAt, &user.DeletedAt)
 	if err != nil {
 		return nil, err
 	}
@@ -138,14 +136,13 @@ func (a *authRepo) IsTokenInBlacklist(token string) error {
 	query := "SELECT COUNT(*) FROM blacklists WHERE token = ?"
 	err := a.DB.QueryRow(query, token).Scan(&count)
 	if err != nil {
-		return errors.Wrap(err, "sql query error")
+		return errors.Wrap(err, "internal server error")
 	}
 	if count > 0 {
 		return fmt.Errorf("token expired, request a new link")
 	}
 	return nil
 }
-
 
 func (a *authRepo) AddToBlackList(blacklist *models.BlackList) error {
 	_, err := a.DB.Exec("INSERT INTO blacklist (email, token) VALUES (?, ?)", blacklist.Email, blacklist.Token)
@@ -154,7 +151,6 @@ func (a *authRepo) AddToBlackList(blacklist *models.BlackList) error {
 	}
 	return nil
 }
-
 
 func (a *authRepo) UpdatePassword(password string, email string) error {
 	_, err := a.DB.Exec("UPDATE users SET password = ? WHERE email = ?", password, email)

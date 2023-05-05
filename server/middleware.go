@@ -1,21 +1,17 @@
 package server
 
 import (
-	"bytes"
+	"database/sql"
 	"errors"
-	ratelimit "github.com/JGLTechnologies/gin-rate-limit"
-	"github.com/decagonhq/meddle-api/services/jwt"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"time"
+	"zeina/services/jwt"
 
-	"gorm.io/gorm"
-
-	errs "github.com/decagonhq/meddle-api/errors"
-	"github.com/decagonhq/meddle-api/models"
-	"github.com/decagonhq/meddle-api/server/response"
 	"github.com/gin-gonic/gin"
+	errs "zeina/errors"
+	"zeina/models"
+	"zeina/server/response"
 )
 
 // Authorize authorizes a request
@@ -46,7 +42,7 @@ func (s *Server) Authorize() gin.HandlerFunc {
 			case errors.Is(err, errs.InActiveUserError):
 				respondAndAbort(c, "inactive user", http.StatusUnauthorized, nil, errs.New(err.Error(), http.StatusUnauthorized))
 				return
-			case errors.Is(err, gorm.ErrRecordNotFound):
+			case errors.Is(err, sql.ErrNoRows):
 				respondAndAbort(c, "user not found", http.StatusUnauthorized, nil, errs.New(err.Error(), http.StatusUnauthorized))
 				return
 			default:
@@ -55,7 +51,7 @@ func (s *Server) Authorize() gin.HandlerFunc {
 			}
 		}
 
-		if !user.IsEmailActive {
+		if !user.IsActive {
 			respondAndAbort(c, "user needs to be verified", http.StatusUnauthorized, nil, errs.New(err.Error(), http.StatusUnauthorized))
 			return
 		}
@@ -65,41 +61,6 @@ func (s *Server) Authorize() gin.HandlerFunc {
 
 		c.Next()
 	}
-}
-
-func limitRateForPasswordReset(store ratelimit.Store) gin.HandlerFunc {
-	store = ratelimit.InMemoryStore(&ratelimit.InMemoryOptions{
-		Rate:  time.Hour * 24,
-		Limit: 3,
-	})
-	mw := ratelimit.RateLimiter(store, &ratelimit.Options{
-		ErrorHandler:   errs.ErrorHandler,
-		KeyFunc:        keyFunc,
-		BeforeResponse: nil,
-	})
-	return mw
-}
-
-func keyFunc(c *gin.Context) string {
-	//TODO Handle when email isn't sent successfully in any of the three tries
-	//b1, err := c.Request.GetBody()
-	buf, err := ioutil.ReadAll(c.Request.Body)
-	if err != nil {
-		response.JSON(c, "", http.StatusBadRequest, nil, err)
-		return ""
-	}
-
-	c.Request.Body = ioutil.NopCloser(bytes.NewBuffer(buf))
-
-	var foundUser models.ForgotPassword
-	err = decode(c, &foundUser)
-	if err != nil {
-		response.JSON(c, "", http.StatusBadRequest, nil, err)
-		return ""
-	}
-
-	c.Request.Body = ioutil.NopCloser(bytes.NewBuffer(buf))
-	return foundUser.Email
 }
 
 // respondAndAbort calls response.JSON and aborts the Context

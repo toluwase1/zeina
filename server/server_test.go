@@ -2,16 +2,16 @@ package server
 
 import (
 	"fmt"
-	"github.com/decagonhq/meddle-api/models"
-	"github.com/decagonhq/meddle-api/services/jwt"
 	"github.com/stretchr/testify/require"
 	"log"
 	"os"
 	"testing"
+	"zeina/models"
+	"zeina/services/jwt"
 
-	"github.com/decagonhq/meddle-api/config"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
+	"zeina/config"
 )
 
 var (

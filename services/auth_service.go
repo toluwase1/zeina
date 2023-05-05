@@ -2,10 +2,13 @@ package services
 
 import (
 	"database/sql"
+	"github.com/google/uuid"
 	"github.com/pkg/errors"
 	"golang.org/x/crypto/bcrypt"
 	"log"
 	"net/http"
+	"regexp"
+	"time"
 	"zeina/config"
 	"zeina/db"
 	apiError "zeina/errors"
@@ -23,15 +26,17 @@ type AuthService interface {
 
 // authService struct
 type authService struct {
-	Config   *config.Config
-	authRepo db.AuthRepository
+	Config     *config.Config
+	authRepo   db.AuthRepository
+	walletRepo db.WalletRepository
 }
 
 // NewAuthService instantiate an authService
-func NewAuthService(authRepo db.AuthRepository, conf *config.Config) AuthService {
+func NewAuthService(authRepo db.AuthRepository, walletRepo db.WalletRepository, conf *config.Config) AuthService {
 	return &authService{
-		Config:   conf,
-		authRepo: authRepo,
+		Config:     conf,
+		authRepo:   authRepo,
+		walletRepo: walletRepo,
 	}
 }
 
@@ -51,17 +56,41 @@ func (a *authService) SignupUser(user *models.User) (*models.User, *apiError.Err
 		log.Printf("error generating password hash: %v", err.Error())
 		return nil, apiError.New("internal server error", http.StatusInternalServerError)
 	}
-
+	//CREATE USER
+	user.ID = uuid.New().String()
+	timeCreated := time.Now().Unix()
+	user.CreatedAt = timeCreated
+	user.UpdatedAt = &timeCreated
 	user.Password = ""
-	user.IsEmailActive = true
-	user, err = a.authRepo.CreateUser(user)
-
+	user.IsActive = true
+	userCreated, err := a.authRepo.CreateUser(user)
 	if err != nil {
 		log.Printf("unable to create user: %v", err.Error())
 		return nil, apiError.New("internal server error", http.StatusInternalServerError)
 	}
 
-	return user, nil
+	//CREATE USER ACCOUNT WITH 0 BALANCES AT SIGNUP
+	bankAccountNumber := extractAccountNumberFromPhoneNumber(userCreated.PhoneNumber)
+	accountTimeCreated := time.Now().Unix()
+	accountReq := models.Account{
+		BaseModel: models.BaseModel{
+			ID:        uuid.New().String(),
+			CreatedAt: accountTimeCreated,
+			UpdatedAt: &accountTimeCreated,
+		},
+		UserID:           userCreated.ID,
+		AccountNumber:    bankAccountNumber,
+		Active:           true,
+		TotalBalance:     0,
+		AvailableBalance: 0,
+		PendingBalance:   0,
+		LockedBalance:    0,
+	}
+	_, err = a.walletRepo.CreateAccount(&accountReq)
+	if err != nil {
+		return nil, apiError.New("internal server error", http.StatusInternalServerError)
+	}
+	return userCreated, nil
 }
 
 func GenerateHashPassword(password string) (string, error) {
@@ -80,7 +109,7 @@ func (a *authService) LoginUser(loginRequest *models.LoginRequest) (*models.Logi
 		}
 	}
 
-	if foundUser.IsEmailActive == false {
+	if foundUser.IsActive == false {
 		return nil, apiError.New("email not verified", http.StatusUnauthorized)
 	}
 
@@ -95,4 +124,10 @@ func (a *authService) LoginUser(loginRequest *models.LoginRequest) (*models.Logi
 	}
 
 	return foundUser.LoginUserToDto(accessToken), nil
+}
+
+func extractAccountNumberFromPhoneNumber(phoneNumber string) string {
+	pattern := regexp.MustCompile(`\d{10}$`)
+	accountNumber := pattern.FindString(phoneNumber)
+	return accountNumber
 }

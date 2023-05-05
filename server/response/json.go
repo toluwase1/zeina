@@ -4,8 +4,8 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/decagonhq/meddle-api/errors"
 	"github.com/gin-gonic/gin"
+	"zeina/errors"
 )
 
 func JSON(c *gin.Context, message string, status int, data interface{}, err error) {

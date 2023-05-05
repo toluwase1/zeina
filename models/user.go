@@ -9,7 +9,7 @@ type User struct {
 	PhoneNumber    string `json:"phone_number" binding:"required,e164"`
 	Password       string `json:"password,omitempty" gorm:"-" binding:"required,min=8,max=15"`
 	HashedPassword string `json:"-" gorm:"password"`
-	IsEmailActive  bool   `json:"-"`
+	IsActive       bool   `json:"-"`
 }
 
 type UserResponse struct {

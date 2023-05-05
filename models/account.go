@@ -3,6 +3,7 @@ package models
 type Account struct {
 	BaseModel
 	UserID           string `json:"user_id"`
+	AccountNumber    string `json:"account_number"`
 	Active           bool   `json:"active"`
 	TotalBalance     int64  `json:"total_balance"`
 	AvailableBalance int64  `json:"available_balance"`

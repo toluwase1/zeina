@@ -4,23 +4,23 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/decagonhq/meddle-api/config"
-	"github.com/decagonhq/meddle-api/services/jwt"
 	"math/rand"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 	"time"
+	"zeina/config"
+	"zeina/services/jwt"
 
-	"github.com/decagonhq/meddle-api/errors"
-	"github.com/decagonhq/meddle-api/mocks"
-	"github.com/decagonhq/meddle-api/models"
 	"github.com/gin-gonic/gin"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/crypto/bcrypt"
+	"zeina/errors"
+	"zeina/mocks"
+	"zeina/models"
 )
 
 func TestSignup(t *testing.T) {
@@ -420,10 +420,10 @@ func Test_Logout(t *testing.T) {
 		t.Error(err)
 	}
 	user := &models.User{
-		Name:        "Tolu",
-		PhoneNumber: "+2348163608141",
-		Email:       "toluwase@gmail.com",
-		Password:    "12345678",
+		Name:          "Tolu",
+		PhoneNumber:   "+2348163608141",
+		Email:         "toluwase@gmail.com",
+		Password:      "12345678",
 		IsEmailActive: true,
 	}
 	conf.JWTSecret = "testSecret"

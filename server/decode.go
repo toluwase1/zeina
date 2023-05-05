@@ -2,11 +2,11 @@ package server
 
 import (
 	"fmt"
-	"github.com/decagonhq/meddle-api/errors"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 	"net/http"
 	"strings"
+	"zeina/errors"
 )
 
 func decode(c *gin.Context, v interface{}) error {

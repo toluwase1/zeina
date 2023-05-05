@@ -1,4 +1,4 @@
-package zeina
+package main
 
 import (
 	"log"
@@ -18,12 +18,16 @@ func main() {
 	}
 	sqlDB := db.GetDB(conf)
 	authRepo := db.NewAuthRepo(sqlDB)
-	authService := services.NewAuthService(authRepo, conf)
+	walletRepo := db.NewWalletRepo(sqlDB)
+	authService := services.NewAuthService(authRepo, walletRepo, conf)
+	walletService := services.NewWalletService(walletRepo, conf)
 
 	s := &server.Server{
-		Config:         conf,
-		AuthRepository: authRepo,
-		AuthService:    authService,
+		Config:           conf,
+		AuthRepository:   authRepo,
+		AuthService:      authService,
+		WalletRepository: walletRepo,
+		WalletService:    walletService,
 	}
 	s.Start()
 }

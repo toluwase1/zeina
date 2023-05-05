@@ -2,6 +2,7 @@ package db
 
 import (
 	"database/sql"
+	_ "github.com/lib/pq"
 	"log"
 	"zeina/config"
 )
@@ -22,16 +23,15 @@ func (sql *SqlDB) Init(c *config.Config) {
 
 func getPostgresDB(c *config.Config) *sql.DB {
 	log.Printf("Connecting to postgres: %+v", c)
-	connStr := "postgres://postgres:toluwase@localhost/zeina?sslmode=disable"
-
-	// Open a database connection
-	db, err := sql.Open("postgres", connStr)
+	postgresDSN := "postgres://postgres:toluwase@localhost/zeina?sslmode=disable"
+	//postgresDSN := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%d TimeZone=Africa/Lagos",
+	//	c.PostgresHost, c.PostgresUser, c.PostgresPassword, c.PostgresDB, c.PostgresPort)
+	log.Println(postgresDSN)
+	db, err := sql.Open("postgres", postgresDSN)
 	if err != nil {
+		log.Println("db connection error", err)
 		panic(err)
 	}
-	defer db.Close()
-
-	// Ping the database to check if the connection is working
 	err = db.Ping()
 	if err != nil {
 		panic(err)
