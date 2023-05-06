@@ -5,6 +5,7 @@ CREATE TABLE accounts (
                           deleted_at bigint DEFAULT NULL,
                           user_id uuid NOT NULL,
                           account_number varchar(255) NOT NULL,
+                          account_type varchar(255) NOT NULL,
                           active boolean NOT NULL,
                           total_balance bigint NOT NULL,
                           available_balance bigint NOT NULL,

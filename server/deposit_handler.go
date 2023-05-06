@@ -1,7 +1,9 @@
 package server
 
 import (
+	"fmt"
 	"github.com/gin-gonic/gin"
+	"log"
 	"net/http"
 	"zeina/models"
 	"zeina/server/response"
@@ -9,16 +11,27 @@ import (
 
 func (s *Server) HandleDeposit() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		var user models.User
-		if err := decode(c, &user); err != nil {
+		//_, user, err := GetValuesFromContext(c)
+		//if err != nil {
+		//	log.Println("11", err)
+		//	err.Respond(c)
+		//	return
+		//}
+		log.Println("11")
+		var deposit models.DepositRequest
+		if err := decode(c, &deposit); err != nil {
+			log.Println("11", err)
 			response.JSON(c, "", http.StatusBadRequest, nil, err)
 			return
 		}
-		userResponse, err := s.AuthService.SignupUser(&user)
-		if err != nil {
-			err.Respond(c)
+		log.Println("22")
+		errr := s.WalletService.Deposit(c, &models.User{}, deposit)
+		if errr != nil {
+			log.Println("33", errr)
+			response.JSON(c, "", http.StatusInternalServerError, nil, errr)
 			return
 		}
-		response.JSON(c, "Signup successful", http.StatusCreated, userResponse, nil)
+		message := fmt.Sprintf("Deposit of %v successful", deposit.Amount)
+		response.JSON(c, message, http.StatusCreated, nil, nil)
 	}
 }

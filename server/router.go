@@ -15,6 +15,7 @@ func (s *Server) defineRoutes(router *gin.Engine) {
 	apirouter := router.Group("/api/v1")
 	apirouter.POST("/auth/signup", s.HandleSignup())
 	apirouter.POST("/auth/login", s.handleLogin())
+	apirouter.POST("/deposit", s.HandleDeposit())
 
 	authorized := apirouter.Group("/")
 	authorized.Use(s.Authorize())

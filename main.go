@@ -18,7 +18,7 @@ func main() {
 	}
 	sqlDB := db.GetDB(conf)
 	authRepo := db.NewAuthRepo(sqlDB)
-	walletRepo := db.NewWalletRepo(sqlDB)
+	walletRepo := db.NewWalletRepo(sqlDB, conf)
 	authService := services.NewAuthService(authRepo, walletRepo, conf)
 	walletService := services.NewWalletService(walletRepo, conf)
 

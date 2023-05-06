@@ -69,7 +69,7 @@ func (a *authService) SignupUser(user *models.User) (*models.User, *apiError.Err
 		return nil, apiError.New("internal server error", http.StatusInternalServerError)
 	}
 
-	//CREATE USER ACCOUNT WITH 0 BALANCES AT SIGNUP
+	//CREATE MULTIPLE USER ACCOUNTS FOR ALL ACCOUNT TYPES WITH 0 BALANCES EACH AT SIGNUP
 	bankAccountNumber := extractAccountNumberFromPhoneNumber(userCreated.PhoneNumber)
 	accountTimeCreated := time.Now().Unix()
 	accountReq := models.Account{
@@ -80,6 +80,7 @@ func (a *authService) SignupUser(user *models.User) (*models.User, *apiError.Err
 		},
 		UserID:           userCreated.ID,
 		AccountNumber:    bankAccountNumber,
+		AccountType:      models.AccountTypeSavings,
 		Active:           true,
 		TotalBalance:     0,
 		AvailableBalance: 0,

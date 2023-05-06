@@ -8,16 +8,17 @@ import (
 )
 
 type Config struct {
-	Debug            bool   `envconfig:"debug"`
-	Port             int    `envconfig:"port"`
-	PostgresHost     string `envconfig:"postgres_host"`
-	PostgresUser     string `envconfig:"postgres_user"`
-	PostgresDB       string `envconfig:"postgres_db"`
-	BaseUrl          string `envconfig:"base_url"`
-	Env              string `envconfig:"env"`
-	PostgresPort     int    `envconfig:"postgres_port"`
-	PostgresPassword string `envconfig:"postgres_password"`
-	JWTSecret        string `envconfig:"jwt_secret"`
+	Debug              bool   `envconfig:"debug"`
+	Port               int    `envconfig:"port"`
+	PostgresHost       string `envconfig:"postgres_host"`
+	PostgresUser       string `envconfig:"postgres_user"`
+	PostgresDB         string `envconfig:"postgres_db"`
+	BaseUrl            string `envconfig:"base_url"`
+	Env                string `envconfig:"env"`
+	PostgresPort       int    `envconfig:"postgres_port"`
+	PostgresPassword   string `envconfig:"postgres_password"`
+	JWTSecret          string `envconfig:"jwt_secret"`
+	ZeinaAccountNumber string `envconfig:"zeina_account_number"`
 }
 
 func Load() (*Config, error) {
