@@ -150,15 +150,16 @@ func (a *accountRepo) createTransactionRecord(ctx context.Context, transaction m
 	return nil
 }
 
-func (a *accountRepo) externalCustomerAccountRecord(ctx context.Context, amount int64, accountNumber string, tx *sql.Tx) error {
-	query := "UPDATE accounts SET pending_balance = pending_balance - $1, available_balance = available_balance + $2 WHERE account_number = $2"
+func (a *accountRepo) externalCustomerAccountRecord(ctx context.Context, amount int64, accountID string, tx *sql.Tx) error {
+	query := "UPDATE accounts SET pending_balance = pending_balance - $1, available_balance = available_balance + $2 WHERE id = $3"
 
-	res, err := tx.ExecContext(ctx, query, amount, accountNumber)
+	res, err := tx.ExecContext(ctx, query, amount, amount, accountID)
 	if err != nil {
 		return err
 	}
-	row, _ := res.RowsAffected()
+	row, errr := res.RowsAffected()
 	if row < 1 {
+		log.Println("check error: ", errr)
 		return fmt.Errorf("could not update account kkkkk")
 	}
 

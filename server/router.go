@@ -16,6 +16,7 @@ func (s *Server) defineRoutes(router *gin.Engine) {
 	apirouter.POST("/auth/signup", s.HandleSignup())
 	apirouter.POST("/auth/login", s.handleLogin())
 	apirouter.POST("/deposit", s.HandleDeposit())
+	apirouter.POST("/withdraw", s.HandleWithdrawal())
 
 	authorized := apirouter.Group("/")
 	authorized.Use(s.Authorize())

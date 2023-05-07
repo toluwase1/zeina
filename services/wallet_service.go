@@ -15,8 +15,8 @@ import (
 
 type WalletService interface {
 	CreateAccount(request *models.Account) (*models.Account, *apiError.Error)
-	Deposit(ctx context.Context, user *models.User, depositRequest models.DepositRequest) error
-	//CreateZeinaLedgerRecord(l *models.Ledger, zeinaAccount models.Account) error
+	Deposit(ctx context.Context, depositRequest models.TransactionRequest) error
+	Withdrawal(ctx context.Context, depositRequest models.TransactionRequest) error
 }
 
 // walletService struct
@@ -43,7 +43,7 @@ func (a *walletService) CreateAccount(account *models.Account) (*models.Account,
 	return account, nil
 }
 
-func (a *walletService) Deposit(ctx context.Context, user *models.User, depositRequest models.DepositRequest) error {
+func (a *walletService) Deposit(ctx context.Context, depositRequest models.TransactionRequest) error {
 	account, err := a.walletRepo.FindAccountByNumber(depositRequest.AccountNumber)
 	if err != nil {
 		return fmt.Errorf("account/user number does not exist %v %v", err, http.StatusBadRequest)
@@ -64,11 +64,12 @@ func (a *walletService) Deposit(ctx context.Context, user *models.User, depositR
 	return nil
 }
 
-func (a *walletService) Withdrawal(ctx context.Context, user *models.User, depositRequest models.DepositRequest) error {
+func (a *walletService) Withdrawal(ctx context.Context, depositRequest models.TransactionRequest) error {
 	account, err := a.walletRepo.FindAccountByNumber(depositRequest.AccountNumber)
 	if err != nil {
 		return fmt.Errorf("account/user number does not exist %v %v", err, http.StatusBadRequest)
 	}
+	log.Println("check acc", account)
 	if account.AccountType != depositRequest.AccountType {
 		return fmt.Errorf("(%s) account type specified does not exist: %v", depositRequest.AccountType, err)
 	}
@@ -78,22 +79,19 @@ func (a *walletService) Withdrawal(ctx context.Context, user *models.User, depos
 	if depositRequest.Amount <= 0 {
 		return fmt.Errorf("invalid amount %v", http.StatusBadRequest)
 	}
-	//NORMAL LOGICS
+	if depositRequest.Amount > account.AvailableBalance {
+		return fmt.Errorf("insufficient balance %v", http.StatusBadRequest)
+	}
+	if account.AvailableBalance < depositRequest.Amount {
+		return fmt.Errorf("insufficient balance %v", http.StatusPaymentRequired)
+	}
+
 	err = a.ExternalMove(ctx, depositRequest.Amount, models.Deposit, *account)
 	if err != nil {
 		return err
 	}
 	return nil
 }
-
-/*
-//FINALIZEWITHDRAW
-CALLS INTERNALMOVE
-ctx context.Context, delta int64, _type string, account models.Account
-
-FINALIZE DEPOSIT {
-EXTERNALMOVE
-*/
 
 func (a *walletService) InternalMove(ctx context.Context, delta int64, _type string, account models.Account) error {
 	var (

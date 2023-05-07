@@ -26,7 +26,7 @@ type LockedBalance struct {
 	AmountLocked int64  `json:"amount_locked"`
 }
 
-type DepositRequest struct {
+type TransactionRequest struct {
 	Amount        int64  `json:"amount"`
 	AccountType   string `json:"account_type"`
 	AccountNumber string `json:"account_number"`
