@@ -72,18 +72,29 @@ func seedZeinasAccount(DB *sql.DB) {
 		PendingBalance:   0,
 		LockedBalance:    0,
 	}
-	err := seedUser(&user, DB)
+	err := seedAdminUser(&user, DB)
 	if err != nil {
 		return
 	}
-	err = createAccount(&accountReq, DB)
+	err = seedAdminAccount(&accountReq, DB)
 	if err != nil {
 		return
 	}
 }
 
-func createAccount(account *models.Account, DB *sql.DB) error {
-	query := "INSERT INTO accounts (id, user_id, active, account_number, account_type, total_balance, available_balance, pending_balance, locked_balance, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10 ,$11) RETURNING id, user_id, active, account_number, account_type, total_balance, available_balance, pending_balance, locked_balance, created_at, updated_at"
+func seedAdminAccount(account *models.Account, DB *sql.DB) error {
+	query := "SELECT id FROM accounts WHERE user_id=$1"
+	var id string
+	row := DB.QueryRow(query, account.UserID)
+	err := row.Scan(&id)
+	if err == nil {
+		// account already exists, return nil to indicate success
+		return nil
+	} else if err != sql.ErrNoRows {
+		return fmt.Errorf("error checking if account exists: %v", err)
+	}
+
+	query = "INSERT INTO accounts (id, user_id, active, account_number, account_type, total_balance, available_balance, pending_balance, locked_balance, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10 ,$11) RETURNING id, user_id, active, account_number, account_type, total_balance, available_balance, pending_balance, locked_balance, created_at, updated_at"
 	stmt, err := DB.Prepare(query)
 	if err != nil {
 		return fmt.Errorf("internal server error %v", err)
@@ -100,8 +111,19 @@ func createAccount(account *models.Account, DB *sql.DB) error {
 	return nil
 }
 
-func seedUser(user *models.User, DB *sql.DB) error {
-	query := "INSERT INTO users (id, name, email, phone_number, hashed_password, is_active, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id, name, email, phone_number, hashed_password, is_active, created_at, updated_at"
+func seedAdminUser(user *models.User, DB *sql.DB) error {
+	query := "SELECT id FROM users WHERE email=$1"
+	var id string
+	row := DB.QueryRow(query, user.Email)
+	err := row.Scan(&id)
+	if err == nil {
+		// user already exists, return nil to indicate success
+		return nil
+	} else if err != sql.ErrNoRows {
+		return fmt.Errorf("error checking if user exists: %v", err)
+	}
+
+	query = "INSERT INTO users (id, name, email, phone_number, hashed_password, is_active, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id, name, email, phone_number, hashed_password, is_active, created_at, updated_at"
 	stmt, err := DB.Prepare(query)
 	if err != nil {
 		return fmt.Errorf("internal server error %v", err)
