@@ -10,3 +10,9 @@ generate-mock:
 
 test: generate-mock
 	 ZEINA_ENV=test go test ./...
+
+soda-down:
+	soda m down -s 10
+
+soda-up:
+	soda m up

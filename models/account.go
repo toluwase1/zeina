@@ -30,4 +30,5 @@ type TransactionRequest struct {
 	Amount        int64  `json:"amount"`
 	AccountType   string `json:"account_type"`
 	AccountNumber string `json:"account_number"`
+	Purpose       string `json:"purpose"`
 }

@@ -29,5 +29,7 @@ func main() {
 		WalletRepository: walletRepo,
 		WalletService:    walletService,
 	}
+	//CRONJOB
+	go walletService.CronjobWebhookUpdate(walletService)
 	s.Start()
 }
