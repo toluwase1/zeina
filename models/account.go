@@ -31,4 +31,12 @@ type TransactionRequest struct {
 	AccountType   string `json:"account_type"`
 	AccountNumber string `json:"account_number"`
 	Purpose       string `json:"purpose"`
+	Reference     string `json:"reference"`
+}
+
+type LockFunds struct {
+	Amount        int64  `json:"amount"`
+	AccountNumber string `json:"account_number"`
+	AccountType   string `json:"account_type"`
+	Days          int    `json:"days"`
 }

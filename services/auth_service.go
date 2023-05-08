@@ -91,6 +91,21 @@ func (a *authService) SignupUser(user *models.User) (*models.User, *apiError.Err
 	if err != nil {
 		return nil, apiError.New("internal server error", http.StatusInternalServerError)
 	}
+	//lockAccount := models.LockedBalance{
+	//	BaseModel: models.BaseModel{
+	//		ID:        uuid.New().String(),
+	//		CreatedAt: accountTimeCreated,
+	//		UpdatedAt: &accountTimeCreated,
+	//	},
+	//	AccountID:    acct.ID,
+	//	LockDate:     0,
+	//	ReleaseDate:  0,
+	//	AmountLocked: 0,
+	//}
+	//err = a.walletRepo.CreateLockedAccount(&lockAccount)
+	//if err != nil {
+	//	return nil, apiError.New("internal server error", http.StatusInternalServerError)
+	//}
 	return userCreated, nil
 }
 

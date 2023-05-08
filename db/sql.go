@@ -37,10 +37,7 @@ func getPostgresDB(c *config.Config) *sql.DB {
 		log.Println("db connection error", err)
 		panic(err)
 	}
-	err = db.Ping()
-	if err != nil {
-		panic(err)
-	}
+
 	log.Println("Connected to database successfully!")
 	return db
 }

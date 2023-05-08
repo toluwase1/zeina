@@ -117,8 +117,10 @@ CREATE TABLE public.transactions (
     entry character varying(255) NOT NULL,
     purpose character varying(255) NOT NULL,
     status character varying(255) NOT NULL,
+    change bigint,
     available_balance bigint NOT NULL,
-    pending_balance bigint NOT NULL
+    pending_balance bigint NOT NULL,
+    reference character varying(255) NOT NULL
 );
 
 
@@ -181,6 +183,14 @@ ALTER TABLE ONLY public.locked_balances
 
 ALTER TABLE ONLY public.transactions
     ADD CONSTRAINT transactions_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: transactions unique_reference; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.transactions
+    ADD CONSTRAINT unique_reference UNIQUE (reference);
 
 
 --
