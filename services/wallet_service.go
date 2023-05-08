@@ -21,7 +21,9 @@ type WalletService interface {
 	ConfirmDepositFromWebhook(ctx context.Context, delta int64, _type string, account models.Account, reference string) error
 	ConfirmWithdrawalFromWebhook(ctx context.Context, delta int64, _type string, account models.Account, reference string) error
 	CronjobWebhookUpdate(service WalletService)
-	LockBalance(ctx *gin.Context, locker models.LockFunds) interface{}
+	LockBalance(ctx *gin.Context, locker models.LockFunds) error
+	UnLockMaturedBalance() error
+	CronjobToReleaseLockedFunds()
 }
 
 // walletService struct
@@ -231,6 +233,33 @@ func (a *walletService) ConfirmWithdrawalFromWebhook(ctx context.Context, delta 
 	return a.InternalMove(ctx, delta, _type, account, reference)
 }
 
+func (a *walletService) LockBalance(ctx *gin.Context, locker models.LockFunds) error {
+	account, err := a.walletRepo.FindAccountByNumber(locker.AccountNumber)
+	if err != nil {
+		return fmt.Errorf("account/user number does not exist %v %v", err, http.StatusBadRequest)
+	}
+	if account.AccountType != locker.AccountType {
+		return fmt.Errorf("(%s) account type specified does not exist: %v", locker.AccountType, err)
+	}
+	if account.AccountNumber == a.Config.ZeinaAccountNumber {
+		return fmt.Errorf("wrong account number %v", http.StatusBadRequest)
+	}
+	if locker.Amount <= 0 {
+		return fmt.Errorf("invalid amount %v", http.StatusBadRequest)
+	}
+	if locker.Amount > account.AvailableBalance {
+		return fmt.Errorf("insufficient balance %v", http.StatusBadRequest)
+	}
+	if account.AvailableBalance < locker.Amount {
+		return fmt.Errorf("insufficient balance %v", http.StatusPaymentRequired)
+	}
+	return a.walletRepo.LockBalance(ctx, locker, *account)
+}
+
+func (a *walletService) UnLockMaturedBalance() error {
+	return a.walletRepo.ReleaseDueFundsWhenDue()
+}
+
 func (a *walletService) CronjobWebhookUpdate(service WalletService) {
 	func() {
 		for {
@@ -260,34 +289,18 @@ func (a *walletService) CronjobWebhookUpdate(service WalletService) {
 	}()
 	select {}
 }
-func (a *walletService) LockBalance(ctx *gin.Context, locker models.LockFunds) interface{} {
-	account, err := a.walletRepo.FindAccountByNumber(locker.AccountNumber)
-	if err != nil {
-		return fmt.Errorf("account/user number does not exist %v %v", err, http.StatusBadRequest)
-	}
-	if account.AccountType != locker.AccountType {
-		return fmt.Errorf("(%s) account type specified does not exist: %v", locker.AccountType, err)
-	}
-	if account.AccountNumber == a.Config.ZeinaAccountNumber {
-		return fmt.Errorf("wrong account number %v", http.StatusBadRequest)
-	}
-	if locker.Amount <= 0 {
-		return fmt.Errorf("invalid amount %v", http.StatusBadRequest)
-	}
-	if locker.Amount > account.AvailableBalance {
-		return fmt.Errorf("insufficient balance %v", http.StatusBadRequest)
-	}
-	if account.AvailableBalance < locker.Amount {
-		return fmt.Errorf("insufficient balance %v", http.StatusPaymentRequired)
-	}
-	return a.walletRepo.LockBalance(ctx, locker, *account)
+
+func (a *walletService) CronjobToReleaseLockedFunds() {
+	func() {
+		for {
+			log.Println("release funds cronjob running")
+			err := a.UnLockMaturedBalance()
+			if err != nil {
+				log.Println(err)
+				return
+			}
+			time.Sleep(1 * time.Second)
+		}
+	}()
+	select {}
 }
-
-/*
-//FINALIZEWITHDRAW
-CALLS INTERNALMOVE
-ctx context.Context, delta int64, _type string, account models.Account
-
-FINALIZE DEPOSIT {
-EXTERNALMOVE
-*/

@@ -23,8 +23,9 @@ type WalletRepository interface {
 	InternalMove(ctx context.Context, ledger models.Ledger, transaction models.Transaction) error //createLedgerRecord(ledger *models.Ledger) (*models.Ledger, error)
 	ExternalMove(ctx context.Context, ledger models.Ledger, transaction models.Transaction) error
 	LockBalance(ctx *gin.Context, locker models.LockFunds, account models.Account) error
-	UnLockBalance(ctx *gin.Context, locker models.LockFunds, accountId models.Account) error
+	ReleaseDueFundsWhenDue() error
 	CreateLockedAccount(lockedBalance *models.LockedBalance) error
+	FindAccountByID(id string) (*models.Account, error)
 }
 
 type accountRepo struct {
@@ -109,6 +110,26 @@ func (a *accountRepo) FindZeinaAccount(accountNumber string) (models.Account, er
 
 func (a *accountRepo) FindAccountByUserID(id string) (*models.Account, error) {
 	query := "SELECT id, user_id, active, account_number, account_type, total_balance, available_balance, pending_balance, locked_balance, created_at, updated_at FROM accounts WHERE user_id=$1"
+	stmt, err := a.DB.Prepare(query)
+	if err != nil {
+		return nil, fmt.Errorf("internal server error: %v", err)
+	}
+	defer stmt.Close()
+
+	var account models.Account
+	err = stmt.QueryRow(id).Scan(&account.ID, &account.UserID, &account.Active, &account.AccountNumber, &account.AccountType, &account.TotalBalance, &account.AvailableBalance, &account.PendingBalance, &account.LockedBalance, &account.CreatedAt, &account.UpdatedAt)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, fmt.Errorf("account not found")
+		}
+		return nil, fmt.Errorf("internal server error: %v", err)
+	}
+
+	return &account, nil
+}
+
+func (a *accountRepo) FindAccountByID(id string) (*models.Account, error) {
+	query := "SELECT id, user_id, active, account_number, account_type, total_balance, available_balance, pending_balance, locked_balance, created_at, updated_at FROM accounts WHERE id=$1"
 	stmt, err := a.DB.Prepare(query)
 	if err != nil {
 		return nil, fmt.Errorf("internal server error: %v", err)
@@ -305,7 +326,52 @@ func (a *accountRepo) LockBalance(ctx *gin.Context, locker models.LockFunds, acc
 	}
 	return nil
 }
-func (a *accountRepo) UnLockBalance(ctx *gin.Context, locker models.LockFunds, accountId models.Account) error {
+func (a *accountRepo) ReleaseDueFundsWhenDue() error {
+	// Fetch all data in locked_balances
+	rows, err := a.DB.Query("SELECT id, created_at, updated_at, deleted_at, account_id, lock_date, release_date, amount_locked FROM locked_balances")
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
 
-	panic("implement me")
+	var lockedBalances []models.LockedBalance
+	for rows.Next() {
+		var lb models.LockedBalance
+		err = rows.Scan(&lb.ID, &lb.CreatedAt, &lb.UpdatedAt, &lb.DeletedAt, &lb.AccountID, &lb.LockDate, &lb.ReleaseDate, &lb.AmountLocked)
+		if err != nil {
+			return err
+		}
+		lockedBalances = append(lockedBalances, lb)
+	}
+	for _, lb := range lockedBalances {
+		//log.Println(lb)
+		if time.Now().Unix() >= lb.ReleaseDate {
+			err = a.unlockCustomerFunds(context.Background(), lb.AmountLocked, lb.AccountID)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+func (a *accountRepo) unlockCustomerFunds(ctx context.Context, amount int64, accountId string) error {
+	begin, err := a.DB.Begin()
+	if err != nil {
+		return err
+	}
+	query := "UPDATE accounts SET available_balance = available_balance + $1, locked_balance = locked_balance - $1 WHERE id = $2"
+	res, err := a.DB.ExecContext(ctx, query, amount, accountId)
+	if err != nil {
+		begin.Rollback()
+		return err
+	}
+	row, _ := res.RowsAffected()
+	if row < 1 {
+		begin.Rollback()
+		return fmt.Errorf("could not update account")
+	}
+
+	return nil
 }

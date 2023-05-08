@@ -31,5 +31,6 @@ func main() {
 	}
 	//CRONJOB
 	go walletService.CronjobWebhookUpdate(walletService)
+	go walletService.CronjobToReleaseLockedFunds()
 	s.Start()
 }
