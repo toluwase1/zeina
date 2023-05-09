@@ -1,0 +1,217 @@
+openapi: "3.0.0"
+info:
+  title: "Zeina MFI  API"
+  description: "API for managing user wallets accounts via the counter"
+  version: "1.0.0"
+servers:
+  - url: "https://zeina.onrender.com/api/v1"
+paths:
+  /auth/signup:
+    post:
+      summary: "HandleSignup for a bank customer"
+      operationId: "HandleSignup"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/User"
+      responses:
+        "200":
+          description: "Successful signup"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "400":
+          description: "Bad request"
+  /auth/login:
+    post:
+      summary: "Login"
+      operationId: "Login"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: "Successful login"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoginResponse"
+        "400":
+          description: "Bad request"
+  /deposit:
+    post:
+      summary: "HandleDeposit"
+      operationId: "HandleDeposit"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TransactionRequest"
+      responses:
+        "200":
+          description: "Successful deposit"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  data:
+                    type: object
+                  errors:
+                    type: array
+                  status:
+                    type: string
+        "400":
+          description: "Bad request"
+  /withdraw:
+    post:
+      summary: "HandleWithdrawal"
+      operationId: "HandleWithdrawal"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TransactionRequest"
+      responses:
+        "200":
+          description: "Successful withdrawal"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  data:
+                    type: object
+                  errors:
+                    type: array
+                  status:
+                    type: string
+        "400":
+          description: "Bad request"
+  /lock-funds:
+    post:
+      summary: "LockFunds"
+      operationId: "LockFunds"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LockFunds"
+      responses:
+        "200":
+          description: "Successful lock funds"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  data:
+                    type: object
+                  errors:
+                    type: array
+                  status:
+                    type: string
+        "400":
+          description: "Bad request"
+  /balance:
+    get:
+      summary: "GetBalance"
+      operationId: "GetBalance"
+      responses:
+        "200":
+          description: "Successful balance retrieval"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Account"
+
+components:
+  schemas:
+    User:
+      type: object
+      properties:
+        email:
+          type: string
+        name:
+          type: string
+        phone_number:
+          type: string
+        password:
+          type: string
+
+    LoginRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+        password:
+          type: string
+    LoginResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        phone_number:
+          type: string
+        email:
+          type: string
+        access_token:
+          type: string
+    TransactionRequest:
+      type: object
+      properties:
+        amount:
+          type: integer
+        account_type:
+          type: string
+        account_number:
+          type: string
+        purpose:
+          type: string
+    LockFunds:
+      type: object
+      properties:
+        amount:
+          type: integer
+        account_number:
+          type: string
+        account_type:
+          type: string
+        days:
+          type: integer
+    Account:
+      type: object
+      properties:
+        id:
+          type: string
+        user_id:
+          type: string
+        account_number:
+          type: string
+        account_type:
+          type: string
+        active:
+          type: boolean
+        total_balance:
+          type: integer
+        available_balance:
+          type: integer
+        pending_balance:
+          type: integer
+        locked_balance:
+          type: integer

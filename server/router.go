@@ -20,9 +20,9 @@ func (s *Server) defineRoutes(router *gin.Engine) {
 	apirouter.POST("/lock-funds", s.LockFunds())
 	apirouter.GET("/balance", s.GetBalance())
 
-	authorized := apirouter.Group("/")
-	authorized.Use(s.Authorize())
-	authorized.GET("/logout", s.handleLogout())
+	//authorized := apirouter.Group("/")
+	//authorized.Use(s.Authorize())
+	//authorized.GET("/logout", s.handleLogout())
 
 }
 
