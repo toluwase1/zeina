@@ -18,6 +18,7 @@ func (s *Server) defineRoutes(router *gin.Engine) {
 	apirouter.POST("/deposit", s.HandleDeposit())
 	apirouter.POST("/withdraw", s.HandleWithdrawal())
 	apirouter.POST("/lock-funds", s.LockFunds())
+	apirouter.GET("/balance", s.GetBalance())
 
 	authorized := apirouter.Group("/")
 	authorized.Use(s.Authorize())

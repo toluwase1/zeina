@@ -6,6 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"log"
+	"math"
 	"net/http"
 	"time"
 	"zeina/config"
@@ -24,6 +25,8 @@ type WalletService interface {
 	LockBalance(ctx *gin.Context, locker models.LockFunds) error
 	UnLockMaturedBalance() error
 	CronjobToReleaseLockedFunds()
+	GetBalance(accountNumber string) (*models.Account, error)
+	ValidateCorrectnessOfLedgersTable() (int64, error)
 }
 
 // walletService struct
@@ -121,7 +124,7 @@ func (a *walletService) InternalMove(ctx context.Context, delta int64, _type str
 	}
 
 	timeCreated := time.Now().Unix()
-	zeinaAccount, err := a.walletRepo.FindZeinaAccount(a.Config.ZeinaAccountNumber)
+	zeinaAccount, err := a.walletRepo.FindZeinaAccount("1111111111")
 	if err != nil {
 		return err
 	}
@@ -290,6 +293,21 @@ func (a *walletService) CronjobWebhookUpdate(service WalletService) {
 	select {}
 }
 
+func (a *walletService) GetBalance(accountNumber string) (*models.Account, error) {
+	account, err := a.walletRepo.FindAccountByNumber(accountNumber)
+	if err != nil {
+		return nil, err
+	}
+	return account, nil
+}
+
+func (a *walletService) ValidateCorrectnessOfLedgersTable() (int64, error) {
+	sum, err := a.walletRepo.SumLedgersAmountColumn()
+	if err != nil {
+		return math.MaxInt64, err
+	}
+	return sum, nil
+}
 func (a *walletService) CronjobToReleaseLockedFunds() {
 	func() {
 		for {

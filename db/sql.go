@@ -30,7 +30,11 @@ func (sql *SqlDB) Init(c *config.Config) {
 	} else {
 		log.Println("created tables successfully: ", err)
 	}
-	seedZeinasAccount(sql.DB)
+	err = seedZeinasAccount(sql.DB)
+	if err != nil {
+		log.Println("seeder error: ", err)
+		return
+	}
 }
 
 func getPostgresDB(c *config.Config) *sql.DB {
@@ -153,14 +157,16 @@ func createTables(DB *sql.DB) error {
                              PRIMARY KEY (id)
 )`)
 	if err != nil {
-		return err
+		return nil
 	}
 
 	return nil
 }
-func seedZeinasAccount(DB *sql.DB) {
+func seedZeinasAccount(DB *sql.DB) error {
 	user := models.User{}
-	user.ID = uuid.New().String()
+	userID := uuid.New().String()
+	user.ID = userID
+	log.Println(userID)
 	user.Name = "zeina"
 	user.PhoneNumber = "+23481111111111"
 	user.Email = "zeina@gmail.com"
@@ -170,13 +176,19 @@ func seedZeinasAccount(DB *sql.DB) {
 	user.Password = ""
 	user.IsActive = true
 	accountTimeCreated := time.Now().Unix()
+	userr, err := seedAdminUser(&user, DB)
+	if err != nil {
+		log.Println("check if error is not nil: ", err)
+		return err
+	}
+	log.Println("check if user was created: ", userr)
 	accountReq := models.Account{
 		BaseModel: models.BaseModel{
 			ID:        uuid.New().String(),
 			CreatedAt: accountTimeCreated,
 			UpdatedAt: &accountTimeCreated,
 		},
-		UserID:           user.ID,
+		UserID:           userr.ID,
 		AccountNumber:    "1111111111",
 		AccountType:      models.AccountTypeSavings,
 		Active:           true,
@@ -185,20 +197,19 @@ func seedZeinasAccount(DB *sql.DB) {
 		PendingBalance:   0,
 		LockedBalance:    0,
 	}
-	err := seedAdminUser(&user, DB)
-	if err != nil {
-		return
-	}
+
 	err = seedAdminAccount(&accountReq, DB)
 	if err != nil {
-		return
+		log.Println("error seeding", err)
+		return err
 	}
+	return nil
 }
 
 func seedAdminAccount(account *models.Account, DB *sql.DB) error {
-	query := "SELECT id FROM accounts WHERE user_id=$1"
+	query := "SELECT id FROM accounts WHERE account_number=$1"
 	var id string
-	row := DB.QueryRow(query, account.UserID)
+	row := DB.QueryRow(query, "1111111111")
 	err := row.Scan(&id)
 	if err == nil {
 		// account already exists, return nil to indicate success
@@ -216,7 +227,7 @@ func seedAdminAccount(account *models.Account, DB *sql.DB) error {
 
 	var createdAccount models.Account
 	err = stmt.QueryRow(account.ID, account.UserID, account.Active, account.AccountNumber, account.AccountType, account.TotalBalance, account.AvailableBalance, account.PendingBalance, account.LockedBalance, account.CreatedAt, account.UpdatedAt).
-		Scan(&createdAccount.ID, &createdAccount.UserID, &createdAccount.Active, &createdAccount.AccountNumber, &createdAccount.AccountType, &createdAccount.TotalBalance, &createdAccount.AvailableBalance, &createdAccount.PendingBalance, &createdAccount.LockedBalance, &createdAccount.CreatedAt, &createdAccount.UpdatedAt)
+		Scan(&createdAccount.ID, &id, &createdAccount.Active, &createdAccount.AccountNumber, &createdAccount.AccountType, &createdAccount.TotalBalance, &createdAccount.AvailableBalance, &createdAccount.PendingBalance, &createdAccount.LockedBalance, &createdAccount.CreatedAt, &createdAccount.UpdatedAt)
 	if err != nil {
 		return fmt.Errorf("could not create account: %v", err)
 	}
@@ -224,29 +235,71 @@ func seedAdminAccount(account *models.Account, DB *sql.DB) error {
 	return nil
 }
 
-func seedAdminUser(user *models.User, DB *sql.DB) error {
+//func seedAdminUser(user *models.User, DB *sql.DB) (*models.User, error) {
+//	query := "SELECT id FROM users WHERE email=$1"
+//	var id string
+//	row := DB.QueryRow(query, user.Email)
+//	err := row.Scan(&id)
+//	if err == nil {
+//		// user already exists, return nil to indicate success
+//		return nil, err
+//	} else if err != sql.ErrNoRows {
+//		return nil, fmt.Errorf("error checking if user exists: %v", err)
+//	}
+//
+//	query = "INSERT INTO users (id, name, email, phone_number, hashed_password, is_active, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id, name, email, phone_number, hashed_password, is_active, created_at, updated_at"
+//	stmt, err := DB.Prepare(query)
+//	if err != nil {
+//		return nil, fmt.Errorf("internal server error %v", err)
+//	}
+//	defer stmt.Close()
+//
+//	var createdUser models.User
+//	err = stmt.QueryRow(user.ID, user.Name, user.Email, user.PhoneNumber, user.HashedPassword, user.IsActive, user.CreatedAt, user.UpdatedAt).Scan(&createdUser.ID, &createdUser.Name, &createdUser.Email, &createdUser.PhoneNumber, &createdUser.HashedPassword, &createdUser.IsActive, &createdUser.CreatedAt, &createdUser.UpdatedAt)
+//	if err != nil {
+//		return nil, fmt.Errorf("could not create user: %v", err)
+//	}
+//	log.Println(createdUser)
+//	return &createdUser, nil
+//}
+
+func seedAdminUser(user *models.User, DB *sql.DB) (*models.User, error) {
+
 	query := "SELECT id FROM users WHERE email=$1"
 	var id string
 	row := DB.QueryRow(query, user.Email)
 	err := row.Scan(&id)
 	if err == nil {
-		// user already exists, return nil to indicate success
-		return nil
+		// user already exists, return the existing user
+		existingUser := &models.User{
+			BaseModel: models.BaseModel{
+				ID:        user.ID,
+				CreatedAt: user.CreatedAt,
+				UpdatedAt: user.UpdatedAt,
+			},
+			Name:           user.Name,
+			Email:          user.Email,
+			PhoneNumber:    user.PhoneNumber,
+			HashedPassword: user.HashedPassword,
+			IsActive:       user.IsActive,
+		}
+		return existingUser, nil
 	} else if err != sql.ErrNoRows {
-		return fmt.Errorf("error checking if user exists: %v", err)
+		return nil, fmt.Errorf("error checking if user exists: %v", err)
 	}
 
 	query = "INSERT INTO users (id, name, email, phone_number, hashed_password, is_active, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id, name, email, phone_number, hashed_password, is_active, created_at, updated_at"
 	stmt, err := DB.Prepare(query)
 	if err != nil {
-		return fmt.Errorf("internal server error %v", err)
+		return nil, fmt.Errorf("internal server error %v", err)
 	}
 	defer stmt.Close()
 
 	var createdUser models.User
 	err = stmt.QueryRow(user.ID, user.Name, user.Email, user.PhoneNumber, user.HashedPassword, user.IsActive, user.CreatedAt, user.UpdatedAt).Scan(&createdUser.ID, &createdUser.Name, &createdUser.Email, &createdUser.PhoneNumber, &createdUser.HashedPassword, &createdUser.IsActive, &createdUser.CreatedAt, &createdUser.UpdatedAt)
 	if err != nil {
-		return fmt.Errorf("could not create user: %v", err)
+		return nil, fmt.Errorf("could not create user: %v", err)
 	}
-	return nil
+	log.Println("whats up", createdUser.ID, user.ID)
+	return &createdUser, nil
 }

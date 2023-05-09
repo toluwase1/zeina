@@ -26,6 +26,7 @@ type WalletRepository interface {
 	ReleaseDueFundsWhenDue() error
 	CreateLockedAccount(lockedBalance *models.LockedBalance) error
 	FindAccountByID(id string) (*models.Account, error)
+	SumLedgersAmountColumn() (int64, error)
 }
 
 type accountRepo struct {
@@ -374,4 +375,23 @@ func (a *accountRepo) unlockCustomerFunds(ctx context.Context, amount int64, acc
 	}
 
 	return nil
+}
+
+func (a *accountRepo) SumLedgersAmountColumn() (int64, error) {
+	var total int64
+
+	rows, err := a.DB.Query("SELECT SUM(change) FROM ledgers")
+	if err != nil {
+		return 0, err
+	}
+	defer rows.Close()
+
+	if rows.Next() {
+		err := rows.Scan(&total)
+		if err != nil {
+			return 0, err
+		}
+	}
+
+	return total, nil
 }

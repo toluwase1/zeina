@@ -2,16 +2,14 @@ package server
 
 import (
 	"fmt"
-	"github.com/stretchr/testify/require"
+	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
 	"log"
 	"os"
 	"testing"
-	"zeina/models"
-	"zeina/services/jwt"
-
-	"github.com/gin-gonic/gin"
-	"github.com/joho/godotenv"
 	"zeina/config"
+	"zeina/db"
+	"zeina/services"
 )
 
 var (
@@ -28,24 +26,24 @@ func TestMain(m *testing.M) {
 		log.Printf("couldn't load env vars: %v", err)
 	}
 	fmt.Println("Starting server tests")
-	c, err := config.Load()
+	conf, err := config.Load()
 	if err != nil {
 		log.Fatal(err)
 	}
+	sqlDB := db.GetDB(conf)
+	authRepo := db.NewAuthRepo(sqlDB)
+	walletRepo := db.NewWalletRepo(sqlDB, conf)
+	authService := services.NewAuthService(authRepo, walletRepo, conf)
+	walletService := services.NewWalletService(walletRepo, conf)
 	testServer.handler = &Server{
-		Config: c,
+		Config:           conf,
+		AuthRepository:   authRepo,
+		AuthService:      authService,
+		WalletRepository: walletRepo,
+		WalletService:    walletService,
 	}
 	testServer.handler.Config.JWTSecret = "testSecret"
 	testServer.router = testServer.handler.setupRouter()
 	exitCode := m.Run()
 	os.Exit(exitCode)
-}
-
-func AuthorizeTestUser(t *testing.T) (string, models.User) {
-	user, _ := randomUser(t)
-	user.IsEmailActive = true
-	accToken, err := jwt.GenerateToken(user.Email, testServer.handler.Config.JWTSecret)
-
-	require.NoError(t, err)
-	return accToken, user
 }
