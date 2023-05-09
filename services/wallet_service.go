@@ -299,7 +299,7 @@ func (a *walletService) CronjobToReleaseLockedFunds() {
 				log.Println(err)
 				return
 			}
-			time.Sleep(1 * time.Second)
+			time.Sleep(15 * time.Second)
 		}
 	}()
 	select {}

@@ -29,7 +29,7 @@ func main() {
 		WalletRepository: walletRepo,
 		WalletService:    walletService,
 	}
-	//CRONJOB
+	//CRONJOBS
 	go walletService.CronjobWebhookUpdate(walletService)
 	go walletService.CronjobToReleaseLockedFunds()
 	s.Start()

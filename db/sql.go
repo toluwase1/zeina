@@ -23,14 +23,20 @@ func GetDB(c *config.Config) *SqlDB {
 
 func (sql *SqlDB) Init(c *config.Config) {
 	sql.DB = getPostgresDB(c)
+	err := createTables(sql.DB)
+	if err != nil {
+		log.Println("error creating tables: ", err)
+		return
+	} else {
+		log.Println("created tables successfully: ", err)
+	}
 	seedZeinasAccount(sql.DB)
 }
 
 func getPostgresDB(c *config.Config) *sql.DB {
 	log.Printf("Connecting to postgres: %+v", c)
-	postgresDSN := "postgres://postgres:toluwase@localhost/zeina?sslmode=disable"
-	//postgresDSN := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%d TimeZone=Africa/Lagos",
-	//	c.PostgresHost, c.PostgresUser, c.PostgresPassword, c.PostgresDB, c.PostgresPort)
+	postgresDSN := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%d TimeZone=Africa/Lagos sslmode=disable",
+		c.PostgresHost, c.PostgresUser, c.PostgresPassword, c.PostgresDB, c.PostgresPort)
 	log.Println(postgresDSN)
 	db, err := sql.Open("postgres", postgresDSN)
 	if err != nil {
@@ -42,6 +48,116 @@ func getPostgresDB(c *config.Config) *sql.DB {
 	return db
 }
 
+func createTables(DB *sql.DB) error {
+	// create users table
+	_, err := DB.Exec(`CREATE TABLE IF NOT EXISTS users (
+		id uuid NOT NULL,
+		email varchar(255) NOT NULL,
+		name varchar(255) NOT NULL,
+		phone_number varchar(255) NOT NULL,
+		hashed_password varchar(255) NOT NULL,
+		is_active varchar(255) NOT NULL,
+		created_at bigint NOT NULL,
+		updated_at bigint NOT NULL,
+		deleted_at bigint DEFAULT NULL,
+		PRIMARY KEY (id)
+	)`)
+	if err != nil {
+		return err
+	}
+
+	// create accounts table
+	_, err = DB.Exec(`CREATE TABLE IF NOT EXISTS accounts (
+		id uuid NOT NULL,
+		created_at bigint NOT NULL,
+		updated_at bigint NOT NULL,
+		deleted_at bigint DEFAULT NULL,
+		user_id uuid NOT NULL,
+		account_number varchar(255) NOT NULL,
+		account_type varchar(255) NOT NULL,
+		active boolean NOT NULL,
+		total_balance bigint NOT NULL,
+		available_balance bigint NOT NULL,
+		pending_balance bigint NOT NULL,
+		locked_balance bigint NOT NULL,
+		PRIMARY KEY (id),
+		FOREIGN KEY (user_id) REFERENCES users(id)
+	)`)
+	if err != nil {
+		return err
+	}
+
+	// create ledgers table
+	_, err = DB.Exec(`CREATE TABLE IF NOT EXISTS ledgers (
+		id uuid NOT NULL,
+		created_at bigint NOT NULL,
+		account_id uuid NOT NULL,
+		account_type varchar(255) NOT NULL,
+		entry varchar(255) NOT NULL,
+		change bigint NOT NULL,
+		type varchar(255) NOT NULL,
+		PRIMARY KEY (id),
+		FOREIGN KEY (account_id) REFERENCES accounts(id)
+	)`)
+	if err != nil {
+		return err
+	}
+
+	// create locked_balances table
+	_, err = DB.Exec(`CREATE TABLE IF NOT EXISTS locked_balances (
+		id uuid NOT NULL,
+		created_at bigint NOT NULL,
+		updated_at bigint NOT NULL,
+		deleted_at bigint DEFAULT NULL,
+		account_id uuid NOT NULL,
+		lock_date bigint NOT NULL,
+		release_date bigint NOT NULL,
+		amount_locked bigint NOT NULL,
+		PRIMARY KEY (id),
+		FOREIGN KEY (account_id) REFERENCES accounts(id)
+	)`)
+	if err != nil {
+		return err
+	}
+
+	// create transactions table
+	_, err = DB.Exec(`CREATE TABLE IF NOT EXISTS transactions (
+		id uuid NOT NULL,
+		created_at bigint NOT NULL,
+		updated_at bigint NOT NULL,
+		deleted_at bigint DEFAULT NULL,
+		account_id uuid NOT NULL,
+		entry varchar(255) NOT NULL,
+		purpose varchar(255) NOT NULL,
+		status varchar(255) NOT NULL,
+		change bigint DEFAULT NULL,
+		available_balance bigint NOT NULL,
+		pending_balance bigint NOT NULL,
+		reference varchar(255) NOT NULL,
+		PRIMARY KEY (id),
+		FOREIGN KEY (account_id) REFERENCES accounts(id),
+		CONSTRAINT unique_reference UNIQUE (reference)
+	)`)
+	if err != nil {
+		return err
+	}
+
+	// create black_lists table
+	_, err = DB.Exec(`CREATE TABLE black_lists (
+                             id uuid NOT NULL,
+                             created_at bigint NOT NULL,
+                             updated_at bigint NOT NULL,
+                             deleted_at bigint DEFAULT NULL,
+                             token varchar(255) NOT NULL,
+                             email varchar(255) NOT NULL,
+                             PRIMARY KEY (id)
+)`)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
 func seedZeinasAccount(DB *sql.DB) {
 	user := models.User{}
 	user.ID = uuid.New().String()
