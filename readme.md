@@ -16,5 +16,6 @@ To get started with Zeina, follow these steps:
 2. go mod download
 3. go run main.go
 4. To run the tests: go test ./...
+5. uml diagram : https://github.com/toluwase1/zeina/blob/master/zeinaUml.svg
 
 
