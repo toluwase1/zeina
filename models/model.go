@@ -2,6 +2,8 @@ package models
 
 import "time"
 
+type TransferDirection string
+type TransferStatus string
 type BaseModel struct {
 	ID        string `json:"id"`
 	CreatedAt int64  `json:"created_at"`
@@ -40,4 +42,24 @@ type OutgoingData struct {
 	Status        string `json:"status"`
 	CreatedAt     string `json:"created_at"`
 	UpdatedAt     string `json:"updated_at"`
+}
+
+type LedgerTransaction struct {
+	LedgerID        string            `json:"ledger_id,omitempty"`
+	Ledger          Ledger            `json:"ledger,omitempty" gorm:"foreignKey:LedgerID"`
+	Direction       TransferDirection `json:"direction"`
+	Amount          int64             `json:"amount"`
+	Fee             int64             `json:"fee"`
+	ServiceFee      int64             `json:"-"`
+	CustomerFee     int64             `json:"-"`
+	CustomerName    string            `json:"customer_name"`
+	CurrencyCode    string            `json:"currency_code"`
+	Status          TransferStatus    `json:"status,omitempty" gorm:"default:'pending'"`
+	BeneficiaryName string            `json:"beneficiary_name"`
+	TransferService string            `json:"-"`
+	Reference       string            `json:"reference"`
+	BankName        string            `json:"bank_name"`
+	BankCode        string            `json:"bank_code"`
+	Narration       string            `json:"narration"`
+	TransferType    string            `json:"transfer_type"`
 }

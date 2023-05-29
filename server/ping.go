@@ -19,7 +19,7 @@ func (s *Server) WebhookLive() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		todaysTime := time.Now().String()
 		message := "This is LIVE: " + todaysTime
-		webhookData := models.OutgoingWebhookPayload{}
+		webhookData := models.LedgerTransaction{}
 		if err := decode(c, &webhookData); err != nil {
 			response.JSON(c, "", http.StatusBadRequest, nil, err)
 			return
@@ -33,7 +33,7 @@ func (s *Server) WebhookTest() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		todaysTime := time.Now().String()
 		message := "This is TEST: " + todaysTime
-		webhookData := models.OutgoingWebhookPayload{}
+		webhookData := models.LedgerTransaction{}
 		if err := decode(c, &webhookData); err != nil {
 			response.JSON(c, "", http.StatusBadRequest, nil, err)
 			return
