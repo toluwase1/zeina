@@ -19,7 +19,7 @@ func (s *Server) WebookTest() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		todaysTime := time.Now().String()
 		message := "This is Zeina: " + todaysTime
-		webhookData := models.Webhook{}
+		webhookData := models.OutgoingWebhookPayload{}
 		if err := decode(c, &webhookData); err != nil {
 			response.JSON(c, "", http.StatusBadRequest, nil, err)
 			return

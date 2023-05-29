@@ -14,3 +14,30 @@ type Webhook struct {
 	Time        time.Time   `json:"time"`
 	Data        interface{} `json:"data"`
 }
+
+type OutgoingWebhookPayload struct {
+	Notify     string       `json:"notify"`
+	NotifyType string       `json:"notifyType"`
+	Data       OutgoingData `json:"data"`
+}
+
+type OutgoingData struct {
+	Id            int    `json:"id"`
+	Reference     string `json:"reference"`
+	Sessionid     string `json:"sessionid"`
+	Currency      string `json:"currency"`
+	Amount        string `json:"amount"`
+	Fee           string `json:"fee"`
+	BankCode      string `json:"bank_code"`
+	BankName      string `json:"bank_name"`
+	AccountNumber string `json:"account_number"`
+	AccountName   string `json:"account_name"`
+	CountryCode   string `json:"countryCode"`
+	PaymentMode   string `json:"paymentMode"`
+	Narration     string `json:"narration"`
+	Sender        string `json:"sender"`
+	Domain        string `json:"domain"`
+	Status        string `json:"status"`
+	CreatedAt     string `json:"created_at"`
+	UpdatedAt     string `json:"updated_at"`
+}
