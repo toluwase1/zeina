@@ -11,7 +11,8 @@ import (
 
 func (s *Server) defineRoutes(router *gin.Engine) {
 	router.GET("/ping", s.Ping())
-	router.POST("/webhook", s.WebookTest())
+	router.POST("/webhook/live", s.WebhookLive())
+	router.POST("/webhook/test", s.WebhookTest())
 
 	apirouter := router.Group("/api/v1")
 	apirouter.POST("/auth/signup", s.HandleSignup())
